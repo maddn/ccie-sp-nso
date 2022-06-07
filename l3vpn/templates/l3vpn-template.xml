@@ -1,0 +1,197 @@
+<config-template xmlns="http://tail-f.com/ns/config/1.0"
+                 servicepoint="l3vpn">
+  <?foreach {endpoint}?>
+    <?set pe_as={deref(pe)/../ncs:config/cisco-ios-xr:router/bgp/bgp-no-instance}?>
+    <?set ce_as={deref(ce)/../ncs:config/cisco-ios-xr:router/bgp/bgp-no-instance}?>
+
+    <devices xmlns="http://tail-f.com/ns/ncs">
+      <device>
+        <name>{pe}</name>
+        <config>
+          <vrf xmlns="http://tail-f.com/ned/cisco-ios-xr">
+            <vrf-list>
+              <name>{string(/vrf-name)}</name>
+              <address-family>
+                <ipv4>
+                  <unicast>
+                    <export>
+                      <route-target>
+                        <address-list>
+                          <name>{$ce_as}:{rd-suffix}</name>
+                        </address-list>
+                      </route-target>
+                    </export>
+                  </unicast>
+                </ipv4>
+                <ipv6>
+                  <unicast>
+                    <export>
+                      <route-target>
+                        <address-list>
+                          <name>{$ce_as}:{rd-suffix}</name>
+                        </address-list>
+                      </route-target>
+                    </export>
+                  </unicast>
+                </ipv6>
+
+                <?foreach {/../l3vpn:l3vpn[vrf-name=/vrf-name]
+                           /endpoint[pe!=current()/pe]}?>
+                  <?set remote_ce_as={deref(ce)/../ncs:config/
+                                      cisco-ios-xr:router/bgp/bgp-no-instance}?>
+                  <ipv4>
+                    <unicast>
+                      <import>
+                        <route-target>
+                            <address-list>
+                              <name>{$remote_ce_as}:{rd-suffix}</name>
+                            </address-list>
+                        </route-target>
+                      </import>
+                    </unicast>
+                  </ipv4>
+                  <ipv6>
+                    <unicast>
+                      <import>
+                        <route-target>
+                            <address-list>
+                              <name>{$remote_ce_as}:{rd-suffix}</name>
+                            </address-list>
+                        </route-target>
+                      </import>
+                    </unicast>
+                  </ipv6>
+                  <?end?>
+
+              </address-family>
+            </vrf-list>
+          </vrf>
+
+          <interface xmlns="http://tail-f.com/ned/cisco-ios-xr">
+            <GigabitEthernet>
+              <id>{pe-interface}</id>
+              <vrf>{/vrf-name}</vrf>
+            </GigabitEthernet>
+          </interface>
+
+          <router xmlns="http://tail-f.com/ned/cisco-ios-xr">
+            <bgp>
+              <bgp-no-instance>
+                <id>{$pe_as}</id>
+                <vrf>
+                  <name>{string(/vrf-name)}</name>
+                  <rd>{$ce_as}:{rd-suffix}</rd>
+                  <address-family>
+                    <ipv4>
+                      <unicast>
+                        <redistribute>
+                          <connected/>
+                        </redistribute>
+                      </unicast>
+                    </ipv4>
+                    <ipv6>
+                     <unicast/>
+                    </ipv6>
+                  </address-family>
+                  <neighbor>
+                    <id>{string(deref(ce-interface)/../ipv4/address/ip)}</id>
+                    <remote-as>{$ce_as}</remote-as>
+                    <address-family>
+                      <ipv4>
+                        <unicast>
+                          <route-policy>
+                            <direction>in</direction>
+                            <name>{route-policy}</name>
+                          </route-policy>
+                          <route-policy>
+                            <direction>out</direction>
+                            <name>{route-policy}</name>
+                          </route-policy>
+                          <as-override/>
+                        </unicast>
+                      </ipv4>
+                    </address-family>
+                  </neighbor>
+                  <neighbor>
+                    <id>{substring-before(deref(ce-interface)/../ipv6/address
+                                          /prefix-list/prefix, '/')}</id>
+                    <remote-as>{$ce_as}</remote-as>
+                    <address-family>
+                      <ipv6>
+                        <unicast>
+                          <route-policy>
+                            <direction>in</direction>
+                            <name>{route-policy}</name>
+                          </route-policy>
+                          <route-policy>
+                            <direction>out</direction>
+                            <name>{route-policy}</name>
+                          </route-policy>
+                          <as-override/>
+                        </unicast>
+                      </ipv6>
+                    </address-family>
+                  </neighbor>
+                </vrf>
+              </bgp-no-instance>
+            </bgp>
+          </router>
+        </config>
+      </device>
+
+      <device>
+        <name>{ce}</name>
+        <config>
+          <router xmlns="http://tail-f.com/ned/cisco-ios-xr">
+            <bgp>
+              <bgp-no-instance>
+                <id>{$ce_as}</id>
+                <neighbor>
+                  <id>{string(deref(pe-interface)/../ipv4/address/ip)}</id>
+                  <remote-as>{$pe_as}</remote-as>
+                  <address-family>
+                    <ipv4>
+                      <unicast>
+                        <route-policy>
+                          <direction>in</direction>
+                          <name>{route-policy}</name>
+                        </route-policy>
+                        <route-policy>
+                          <direction>out</direction>
+                          <name>{route-policy}</name>
+                        </route-policy>
+                        <as-override/>
+                      </unicast>
+                    </ipv4>
+                  </address-family>
+                </neighbor>
+                <neighbor>
+                  <id>{substring-before(deref(pe-interface)/../ipv6/address
+                                        /prefix-list/prefix, '/')}</id>
+                  <remote-as>{$pe_as}</remote-as>
+                  <address-family>
+                    <ipv6>
+                      <unicast>
+                        <route-policy>
+                          <direction>in</direction>
+                          <name>{route-policy}</name>
+                        </route-policy>
+                        <route-policy>
+                          <direction>out</direction>
+                          <name>{route-policy}</name>
+                        </route-policy>
+                        <as-override/>
+                      </unicast>
+                    </ipv6>
+                  </address-family>
+                </neighbor>
+              </bgp-no-instance>
+            </bgp>
+          </router>
+
+        </config>
+      </device>
+
+    </devices>
+  <?end?>
+</config-template>

@@ -1,0 +1,64 @@
+module bfd {
+  namespace "http://example.com/bfd";
+  prefix bfd;
+
+  import tailf-common {
+    prefix tailf;
+  }
+  import tailf-ncs {
+    prefix ncs;
+  }
+
+  list bfd {
+    key name;
+    tailf:info "Enable BFD between BGP neighbours";
+
+    leaf name {
+      type string;
+      tailf:info "Unique name describing the BFD session";
+    }
+
+    uses ncs:service-data;
+    ncs:servicepoint bfd-servicepoint;
+
+    leaf-list devices {
+      type leafref {
+        path "/ncs:devices/ncs:device/ncs:name";
+      }
+      tailf:info
+        "List of devices on which to enabled BFD
+         (for external BGP, these must be directly connected)";
+    }
+
+    leaf bgp-type {
+      tailf:info "Determines how to find the neighbour IP addresses";
+      type enumeration {
+        enum internal {
+          tailf:info
+            "Neighbour IP addresses will be taken from Loopback 0 interfaces";
+        }
+        enum external {
+          tailf:info
+            "Neighbour IP addresses will be taken from GigabitEthernet
+             interfaces connecting the devices";
+        }
+      }
+    }
+
+    leaf multiplier {
+      type uint8 {
+        range "2..50";
+      }
+      tailf:info
+        "The minimum number of consecutive packets that can be missed before
+         the session is declared down";
+    }
+
+    leaf minimum-interval {
+      type uint16 {
+        range "15..30000";
+      }
+      tailf:info "The minimum control packet interval in milliseconds";
+    }
+  }
+}

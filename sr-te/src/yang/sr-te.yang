@@ -1,0 +1,70 @@
+module sr-te {
+  namespace "http://com/example/srte";
+  prefix sr-te;
+
+  import tailf-common {
+    prefix tailf;
+  }
+  import tailf-ncs {
+    prefix ncs;
+  }
+
+  list sr-te {
+    key "head-end tail-end color";
+    tailf:info "Manage Segment Routing Traffic Engineering policies";
+
+    uses ncs:service-data;
+    ncs:servicepoint "sr-te";
+
+    leaf head-end {
+      type leafref {
+        path "/ncs:devices/ncs:device/ncs:name";
+      }
+      tailf:info "The device the SR-TE policy is instantiated on";
+    }
+
+    leaf tail-end {
+      type leafref {
+        path "/ncs:devices/ncs:device/ncs:name";
+      }
+      tailf:info "The destination of the SR-TE policy";
+      must ".!=../head-end" {
+        error-message "The head-end and tail-end must be different";
+      }
+    }
+
+    leaf color {
+      type uint32;
+      tailf:info
+        "A numerical color value distinguishing policies between the same node
+         pairs";
+    }
+
+    list path {
+      key preference;
+      tailf:info
+        "A dynamic candidate path that can be optimized on metric type";
+
+      leaf preference {
+        type uint16;
+        tailf:info
+          "The path preference, the highest value is the active path";
+      }
+
+      leaf metric {
+        type enumeration {
+          enum hopcount;
+          enum igp;
+          enum latency;
+          enum te;
+        }
+        tailf:info "The metric type use in the path computation";
+      }
+
+      leaf pcep {
+        type empty;
+        tailf:info "Specifies that the path computation is at the SR-PCE";
+      }
+    }
+  }
+}

@@ -1,0 +1,36 @@
+<config-template xmlns="http://tail-f.com/ns/config/1.0"
+                 servicepoint="basic-acl">
+  <devices xmlns="http://tail-f.com/ns/ncs">
+    <device>
+      <name>{rule/device}</name>
+      <config>
+        <ntp xmlns="http://tail-f.com/ned/cisco-ios-xr" when="{/apply/ntp-peer}">
+          <access-group>
+            <version>ipv4</version>
+            <type>peer</type>
+            <name>{/name}</name>
+          </access-group>
+        </ntp>
+        <ipv4 xmlns="http://tail-f.com/ned/cisco-ios-xr">
+          <access-list>
+            <?set id={0}?>
+            <named-acl foreach="{/rule[device!=current()/device]}">
+              <name>{string(/name)}</name>
+              <?set id={$id+10}?>
+              <rule>
+                <id>{$id}</id>
+                <?set ip_address={host-ip-address}?>
+                <?if {starts-with($ip_address, 'loopback')}?>
+                  <?set ip_address={deref(device)/../config/interface
+                    /Loopback[id=substring-after($ip_address, 'loopback')]
+                    /ipv4/address/ip}?>
+                <?end?>
+                <line>{action} ipv4 host {$ip_address} any</line>
+              </rule>
+            </named-acl>
+          </access-list>
+        </ipv4>
+      </config>
+    </device>
+  </devices>
+</config-template>

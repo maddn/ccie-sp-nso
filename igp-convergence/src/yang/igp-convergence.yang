@@ -1,0 +1,66 @@
+module igp-convergence {
+  namespace "http://com/example/igpconvergence";
+  prefix igp-convergence;
+
+  import tailf-common {
+    prefix tailf;
+  }
+  import tailf-ncs {
+    prefix ncs;
+  }
+
+  list igp-convergence {
+    key prefix-tag;
+    tailf:info "Manage TI-LFA and Loopback route priority";
+
+    leaf prefix-tag {
+      type uint32;
+      tailf:info
+        "Unique service ID, also used as the tag for Loopback 0 prefixes";
+    }
+
+    uses ncs:service-data;
+    ncs:servicepoint "igp-convergence";
+
+    leaf-list device-groups {
+      type leafref {
+        path "/ncs:devices/ncs:device-group/ncs:name";
+      }
+      tailf:info
+        "Devices which belong to any of these groups will be configured";
+    }
+
+    leaf restrict-devices-to-group {
+      type leafref {
+        path "/ncs:devices/ncs:device-group/ncs:name";
+      }
+      tailf:info
+        "Restrict the devices to be configured to only those that also exist
+         in this group";
+    }
+
+    leaf prefix-priority {
+      type enumeration {
+        enum medium;
+        enum high;
+        enum critical;
+      }
+      tailf:info
+        "Priority order which Loopback 0 prefixes are added to the RIB";
+    }
+
+    leaf limit-prefixes {
+      type boolean;
+      tailf:info
+        "Limit LFA computation to routes with the priority value in
+         prefix-priority or higher (Loopback 0)";
+    }
+
+    leaf ti-lfa {
+      type boolean;
+      tailf:info
+        "Enable per-prefix TI-LFA fast reroute link protection on all IS-IS
+         GigabitEthernet interfaces";
+    }
+  }
+}

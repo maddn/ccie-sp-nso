@@ -1,0 +1,34 @@
+<config-template xmlns="http://tail-f.com/ns/config/1.0"
+                 servicepoint="sr-te">
+  <devices xmlns="http://tail-f.com/ns/ncs">
+    <device>
+      <name>{head-end}</name>
+      <config>
+        <segment-routing xmlns="http://tail-f.com/ned/cisco-ios-xr">
+          <traffic-eng>
+            <policy>
+              <name>sr-te-endpoint-{tail-end}-color-{color}</name>
+              <color>
+                <value>{color}</value>
+                <end-point>
+                  <ipv4>{deref(tail-end)/../config/interface/Loopback[id=0]/ipv4/address/ip}</ipv4>
+                </end-point>
+              </color>
+              <candidate-paths>
+                <preference foreach="{path}">
+                  <id>{preference}</id>
+                  <dynamic>
+                    <pcep when="{pcep}"/>
+                    <metric>
+                      <type>{metric}</type>
+                    </metric>
+                  </dynamic>
+                </preference>
+              </candidate-paths>
+            </policy>
+          </traffic-eng>
+        </segment-routing>
+      </config>
+    </device>
+  </devices>
+</config-template>

@@ -1,0 +1,72 @@
+<config-template xmlns="http://tail-f.com/ns/config/1.0"
+                 servicepoint="bfd-servicepoint">
+
+  <!-- This macro attempts to find the interface from the device in the current
+       context (from device) connected to the device which is currently being
+       configured (to device - stored in the special $DEVICE variable).
+       The interface is found by matching IP addresses, assuming a subnet of /24.
+  -->
+  <?macro FindGigEthToDevice to=$DEVICE?>
+    <?set from={../../name}?>
+    <?set if_id=''?>
+    <?for i=1; {$i <= count(GigabitEthernet) and $if_id = ''}; i={$i + 1}?>
+      <?set subnet=''?>
+      <?set ip={GigabitEthernet[number($i)]/ipv4/address/ip}?>
+      <?if {$ip != ''}?>
+        <?for j=0; {$j < 3}; j={$j + 1}?>
+          <?set subnet={concat($subnet, substring-before($ip, '.'), '.')}?>
+          <?set ip={substring-after($ip, '.')}?>
+        <?end?>
+        <?set-context-node {deref(/devices[.=$to])/../config/interface}?>
+        <?for k=1; {$k <= count(GigabitEthernet) and $if_id = ''}; k={$k + 1}?>
+          <?if {starts-with(GigabitEthernet[number($k)]/ipv4/address/ip, $subnet)?>
+            <?set if_id={deref(/devices[.=$from])/../config/interface/
+                         GigabitEthernet[number($i)]/id}?>
+          <?end?>
+        <?end?>
+      <?end?>
+      <?set-context-node {deref(/devices[.=$from])/../config/interface}?>
+    <?end?>
+  <?endmacro?>
+
+  <devices xmlns="http://tail-f.com/ns/ncs">
+    <device>
+      <name>{devices}</name>
+      <config>
+        <router xmlns="http://tail-f.com/ned/cisco-ios-xr">
+          <bgp>
+            <bgp-no-instance>
+              <id>{string(deref(.)/../config/router/bgp/bgp-no-instance/id)}</id>
+              <?foreach {/devices[.!=current()]}?>
+                <?set-context-node {deref(.)/../config/interface}?>
+                <?if {/bgp-type='internal'}?>
+                  <?set-context-node {Loopback[id=0]}?>
+                <?else?>
+                  <?expand FindGigEthToDevice?>
+                  <?set-context-node {GigabitEthernet[id=$if_id]}?>
+                <?end?>
+
+                <neighbor>
+                  <id>{ipv4/address/ip}</id>
+                  <bfd>
+                    <minimum-interval>{/minimum-interval}</minimum-interval>
+                    <fast-detect/>
+                    <multiplier>{/multiplier}</multiplier>
+                  </bfd>
+                </neighbor>
+                <neighbor>
+                  <id>{substring-before(ipv6/address/prefix-list/prefix, '/')}</id>
+                  <bfd>
+                    <minimum-interval>{/minimum-interval}</minimum-interval>
+                    <fast-detect/>
+                    <multiplier>{/multiplier}</multiplier>
+                  </bfd>
+                </neighbor>
+              <?end?>
+            </bgp-no-instance>
+          </bgp>
+        </router>
+      </config>
+    </device>
+  </devices>
+</config-template>

@@ -1,0 +1,75 @@
+module basic-acl {
+  namespace "http://com/example/basicacl";
+  prefix basic-acl;
+
+  import tailf-common {
+    prefix tailf;
+  }
+  import tailf-ncs {
+    prefix ncs;
+  }
+  import ietf-inet-types {
+    prefix inet;
+  }
+
+  list basic-acl {
+    key name;
+    tailf:info "Manage a single host filtering ACL across multiple devices";
+
+    leaf name {
+      type string;
+      tailf:info "Unique service name, used as the ACL name on the devices";
+    }
+
+    uses ncs:service-data;
+    ncs:servicepoint "basic-acl";
+
+    list rule {
+      key "action device host-ip-address";
+      ordered-by user;
+      tailf:cli-suppress-mode;
+      tailf:info
+        "Ordered master rule list, ACLs are generated for each device in the
+         list omitting the rules for it's own host IP addresses.";
+
+      leaf action {
+        type enumeration {
+          enum deny;
+          enum permit;
+        }
+        tailf:info
+          "Rule action to filter traffic for the host IP address";
+      }
+
+      leaf device {
+        type leafref {
+          path "/ncs:devices/ncs:device/ncs:name";
+        }
+        tailf:info
+          "The device which owns the host IP address, the rule will be included
+           in ACLs generated on all other devices";
+      }
+
+      leaf host-ip-address {
+        type union {
+          type inet:ipv4-address;
+          type string {
+            pattern 'loopback[0-9]*';
+            tailf:info 'loopback[N]';
+          }
+        }
+        tailf:info
+          "An IPv4 address, or the loopback interface on the device to lookup
+           the IP address from";
+      }
+    }
+
+    container apply {
+      tailf:info "How to apply the ACL on each device in the rule list";
+      leaf ntp-peer {
+        type empty;
+        tailf:info "Use the ACL to control NTP peer access";
+      }
+    }
+  }
+}

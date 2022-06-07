@@ -1,0 +1,70 @@
+<config-template xmlns="http://tail-f.com/ns/config/1.0"
+                 servicepoint="igp-convergence">
+  <devices xmlns="http://tail-f.com/ns/ncs">
+    <?foreach {device-groups}?>
+      <device>
+        <name>{deref(.)/../device-name}</name>
+        <config>
+          <?if {not(/restrict-devices-to-group) or count(deref(
+                /restrict-devices-to-group)/../device-name[.=current()])=1}?>
+            <router xmlns="http://tail-f.com/ned/cisco-ios-xr">
+              <isis>
+                <tag>
+                  <name>{deref(current())/../config/router/isis/tag/name}</name>
+                  <address-family when="{/prefix-priority}">
+                    <ipv4>
+                      <unicast>
+                        <fast-reroute when="{/limit-prefixes='true'}">
+                          <per-prefix>
+                            <priority-limit>
+                              <value>{/prefix-priority}</value>
+                            </priority-limit>
+                          </per-prefix>
+                        </fast-reroute>
+                        <spf>
+                          <prefix-priority>
+                            <priority>{/prefix-priority}</priority>
+                            <tag>{/prefix-tag}</tag>
+                          </prefix-priority>
+                        </spf>
+                      </unicast>
+                    </ipv4>
+                  </address-family>
+                  <interface when="{/prefix-priority}">
+                    <name>Loopback0</name>
+                    <address-family>
+                      <ipv4>
+                        <unicast>
+                          <tag>{/prefix-tag}</tag>
+                        </unicast>
+                      </ipv4>
+                    </address-family>
+                  </interface>
+                  <interface
+                      when="{/ti-lfa='true'}"
+                      foreach="{interface[starts-with(name, 'GigabitEthernet')]}">
+                    <name>{name}</name>
+                    <address-family>
+                      <ipv4>
+                        <unicast>
+                          <fast-reroute>
+                            <enable>
+                              <per-prefix/>
+                            </enable>
+                            <per-prefix>
+                              <ti-lfa/>
+                            </per-prefix>
+                          </fast-reroute>
+                        </unicast>
+                      </ipv4>
+                    </address-family>
+                  </interface>
+                </tag>
+              </isis>
+            </router>
+          <?end?>
+        </config>
+      </device>
+    <?end?>
+  </devices>
+</config-template>

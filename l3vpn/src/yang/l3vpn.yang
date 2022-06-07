@@ -1,0 +1,80 @@
+module l3vpn {
+  namespace "http://com/example/l3vpn";
+  prefix l3vpn;
+
+  import tailf-common {
+    prefix tailf;
+  }
+  import tailf-ncs {
+    prefix ncs;
+  }
+  import tailf-ned-cisco-ios-xr {
+    prefix cisco-ios-xr;
+  }
+
+  list l3vpn {
+    key "vrf-name";
+    tailf:info "Manage L3VPN endpoints";
+
+    uses ncs:service-data;
+    ncs:servicepoint "l3vpn";
+
+    leaf vrf-name {
+      type string;
+      tailf:info "Unique name for the VRF";
+    }
+
+    list endpoint {
+      key "site-name";
+      tailf:info "L3VPN endpoint with managed CE";
+
+      leaf site-name {
+        type string;
+        tailf:info "Unique name for the endpoint site";
+      }
+
+      leaf ce {
+        type leafref {
+          path "/ncs:devices/ncs:device/ncs:name";
+        }
+        tailf:info "CE device";
+      }
+
+      leaf pe {
+        type leafref {
+          path "/ncs:devices/ncs:device/ncs:name";
+        }
+        tailf:info "PE device";
+      }
+
+      leaf rd-suffix {
+        type uint32;
+        tailf:info "Suffix part of the route distinguisher";
+      }
+
+      leaf route-policy {
+        type leafref {
+          path "deref(../pe)/../ncs:config" +
+               "/cisco-ios-xr:route-policy/cisco-ios-xr:name";
+        }
+        tailf:info "Route policy name";
+      }
+
+      leaf pe-interface {
+        tailf:info "GigabitEthernet interface on the PE connected to the CE";
+        type leafref {
+          path "deref(../pe)/../ncs:config/cisco-ios-xr:interface" +
+               "/cisco-ios-xr:GigabitEthernet/cisco-ios-xr:id";
+        }
+      }
+
+      leaf ce-interface {
+        tailf:info "GigabitEthernet interface on the CE connected to the PE";
+        type leafref {
+          path "deref(../ce)/../ncs:config/cisco-ios-xr:interface" +
+               "/cisco-ios-xr:GigabitEthernet/cisco-ios-xr:id";
+        }
+      }
+    }
+  }
+}
